@@ -27,13 +27,26 @@ class Config(BaseModel):
     def redis_url(self) -> str:
         return f"redis://{self.redis_host}:{self.redis_port}"
 
+    @staticmethod
+    def _read_from_file(file_path_env: str) -> str | None:
+        file_path = os.getenv(file_path_env)
+        if not file_path:
+            return None
+        try:
+            with open(file_path) as f:
+                return f.read().strip()
+        except OSError as e:
+            print(f"Warning: Failed to read from file {file_path}: {e}")
+            return None
+
     @classmethod
     def from_env(cls) -> "Config":
         redis_host = os.getenv("REDIS_HOST")
         redis_port_str = os.getenv("REDIS_PORT")
         redis_queue = os.getenv("REDIS_QUEUE")
-        telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
-        telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
+
+        telegram_bot_token = cls._read_from_file("TELEGRAM_BOT_TOKEN_FILE")
+        telegram_chat_id = cls._read_from_file("TELEGRAM_CHAT_ID_FILE")
 
         if not redis_host:
             raise ValueError("REDIS_HOST environment variable is required")
@@ -46,7 +59,7 @@ class Config(BaseModel):
         if not redis_queue:
             raise ValueError("REDIS_QUEUE environment variable is required")
         if not telegram_bot_token:
-            raise ValueError("TELEGRAM_BOT_TOKEN environment variable is required")
+            raise ValueError("TELEGRAM_BOT_TOKEN_FILE environment variable is required")
 
         return cls(
             redis_host=redis_host,
